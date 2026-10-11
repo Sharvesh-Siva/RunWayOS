@@ -48,6 +48,20 @@ export function runAllTests(): { passed: number; failed: number; results: string
   assert(forecast.length === 30, 'Forecast generates exactly 30 days');
   assert(forecast[0].openingBalance === 9250, 'Day 1 opening balance equals settled cash');
 
+  // Forward forecasts must begin from current settled cash without replaying history.
+  const dayFiveState = structuredClone(baseState);
+  dayFiveState.simulationDay = 5;
+  const dayFiveForecast = generateDailyForecast(dayFiveState);
+  assert(dayFiveForecast[4].openingBalance === calculateCurrentCash(dayFiveState), 'Forecast starts from current cash on the simulation day');
+  assert(dayFiveForecast[4].committedTotal >= 4500, 'Due commitment is applied on the current simulation day');
+  assert(dayFiveForecast[5].openingBalance === dayFiveForecast[4].closingBalance, 'Forward balances roll consistently after current day');
+
+  const dayFifteenState = structuredClone(baseState);
+  dayFifteenState.simulationDay = 15;
+  const dayFifteenForecast = generateDailyForecast(dayFifteenState);
+  assert(dayFifteenForecast[13].incomeTotal === 0, 'Past expected income is not counted again after the simulation day');
+  assert(dayFifteenForecast[14].openingBalance === calculateCurrentCash(dayFifteenState), 'Day 15 forecast begins from the settled current cash balance');
+
   // 4. Day 5 rent due date
   const day5 = forecast.find(f => f.day === 5);
   assert(day5 !== undefined && day5.committedTotal >= 4500, 'Day 5 reflects ₹4,500 PG rent commitment');
