@@ -51,14 +51,13 @@ export function calculateCurrentCash(state: AppFinancialState): number {
 
   // Incomes actually received on or before currentDay
   const receivedInflows = state.incomes
-    .filter(inc => inc.status === 'received' && (inc.actualDay ?? inc.expectedDay) <= currentDay)
+    .filter(inc => {
+      const day = inc.actualDay ?? inc.expectedDay;
+      return day <= currentDay && inc.status === 'received';
+    })
     .reduce((sum, inc) => sum + inc.amount, 0);
 
-  const paidCommitments = state.commitments
-    .filter(com => com.status === 'paid' && com.dueDay <= currentDay)
-    .reduce((sum, com) => sum + com.amount, 0);
-
-  return state.initialBalance + receivedInflows - settledOutflows - paidCommitments;
+  return state.initialBalance + receivedInflows - settledOutflows;
 }
 
 /**
@@ -220,94 +219,143 @@ export function generateDailyForecast(
   const currentDay = state.simulationDay;
   const minReserve = state.constraints.minimumReserve;
   const dailyDiscretionary = state.constraints.dailyDiscretionaryBudget;
-  const activeDailySavings = state.goals.reduce((sum, goal) => sum + goal.allocatedDaily, 0);
+
   const forecast: DayForecast[] = [];
   let runningBalance = currentCash;
 
   for (let day = 1; day <= 30; day++) {
-    // Current cash already includes settled activity through simulationDay.
-    // Keep historical rows for the 30-day chart without replaying old activity.
-    if (day < currentDay) {
-      forecast.push({
-        day, dateLabel: `Day ${day}`,
-        openingBalance: currentCash, incomeTotal: 0, committedTotal: 0,
-        discretionaryTotal: 0, savingsTotal: 0, simulatedTotal: 0,
-        closingBalance: currentCash, minimumProjected: minReserve,
-        isConstraintBreached: currentCash < minReserve, events: [],
-      });
-      continue;
-    }
+    const isPast = day < currentDay;
 
+    // Inflows for this day
     let dayIncome = 0;
     const dayEvents: DayForecast['events'] = [];
-    for (const income of state.incomes) {
-      let incomeDay = income.actualDay ?? income.expectedDay;
+
+    // Check incomes
+    for (const inc of state.incomes) {
+      let incomeDay = inc.actualDay ?? inc.expectedDay;
+
+      // Handle stress scenario delayed income
       if (
         options?.stressScenario?.type === 'delayed_income' &&
-        (!options.stressScenario.incomeId || options.stressScenario.incomeId === income.id) &&
-        options.stressScenario.incomeDelayDays &&
-        income.status !== 'received'
-      ) incomeDay += options.stressScenario.incomeDelayDays;
+        options.stressScenario.incomeId === inc.id &&
+        options.stressScenario.incomeDelayDays
+      ) {
+        incomeDay += options.stressScenario.incomeDelayDays;
+      }
 
-      if (income.status !== 'received' && incomeDay === day) {
-        dayIncome += income.amount;
-        dayEvents.push({ type: 'income', title: income.title, amount: income.amount, isOutflow: false });
+      if (incomeDay === day) {
+        dayIncome += inc.amount;
+        dayEvents.push({
+          type: 'income',
+          title: inc.title,
+          amount: inc.amount,
+          isOutflow: false,
+        });
       }
     }
 
+    // Commitments due on this day
     let dayCommitments = 0;
-    for (const commitment of state.commitments) {
-      if (commitment.dueDay === day && commitment.status === 'due') {
-        dayCommitments += commitment.amount;
-        dayEvents.push({ type: 'commitment', title: commitment.title, amount: commitment.amount, isOutflow: true });
+    for (const com of state.commitments) {
+      if (com.dueDay === day && (com.status === 'due' || (isPast && com.status === 'paid'))) {
+        dayCommitments += com.amount;
+        dayEvents.push({
+          type: 'commitment',
+          title: com.title,
+          amount: com.amount,
+          isOutflow: true,
+        });
       }
     }
 
-    const surge = options?.stressScenario?.type === 'variable_spending_surge'
-      ? Math.max(0, options.stressScenario.dailySurgeAmount ?? 0) : 0;
-    const dayDiscretionary = dailyDiscretionary + surge;
-    if (dayDiscretionary > 0) {
+    // Discretionary allowance for today (only active for current & future days)
+    let dayDiscretionary = 0;
+    if (!isPast) {
+      let surge = 0;
+      if (options?.stressScenario?.type === 'variable_spending_surge' && options.stressScenario.dailySurgeAmount) {
+        surge = options.stressScenario.dailySurgeAmount;
+      }
+      dayDiscretionary = dailyDiscretionary + surge;
+      if (dayDiscretionary > 0) {
+        dayEvents.push({
+          type: 'discretionary',
+          title: surge > 0 ? 'Discretionary + Variable Surge' : 'Daily Living Allowance',
+          amount: dayDiscretionary,
+          isOutflow: true,
+        });
+      }
+    }
+
+    // Savings goal daily contribution
+    let daySavings = 0;
+    if (!isPast) {
+      const activeDailySavings = state.goals.reduce((acc, g) => acc + g.allocatedDaily, 0);
+      daySavings = activeDailySavings;
+      if (daySavings > 0) {
+        dayEvents.push({
+          type: 'savings',
+          title: 'Target Savings Contributions',
+          amount: daySavings,
+          isOutflow: true,
+        });
+      }
+    }
+
+    // Simulated decision option impact (e.g. proposed purchase)
+    let daySimulated = 0;
+    if (options?.simulatedOption && options.simulatedOption.day === day) {
+      daySimulated = options.simulatedOption.amount;
       dayEvents.push({
-        type: 'discretionary',
-        title: surge > 0 ? 'Discretionary + Variable Surge' : 'Daily Living Allowance',
-        amount: dayDiscretionary, isOutflow: true,
+        type: 'simulated',
+        title: `[Simulated] ${options.simulatedOption.label}`,
+        amount: options.simulatedOption.amount,
+        isOutflow: true,
       });
     }
 
-    const daySavings = activeDailySavings;
-    if (daySavings > 0) {
-      dayEvents.push({ type: 'savings', title: 'Target Savings Contributions', amount: daySavings, isOutflow: true });
-    }
-
-    let daySimulated = 0;
-    if (options?.simulatedOption && options.simulatedOption.day === day) {
-      const amount = Math.max(0, options.simulatedOption.amount);
-      daySimulated += amount;
-      dayEvents.push({ type: 'simulated', title: `[Simulated] ${options.simulatedOption.label}`, amount, isOutflow: true });
-    }
-
-    const scenario = options?.stressScenario;
+    // Stress scenario unexpected expense
     if (
-      scenario && (scenario.type === 'unexpected_expense' || scenario.type === 'compound_shock') &&
-      scenario.expenseDay === day && (scenario.expenseAmount ?? 0) > 0
+      options?.stressScenario &&
+      (options.stressScenario.type === 'unexpected_expense' ||
+        options.stressScenario.type === 'compound_shock') &&
+      options.stressScenario.expenseDay === day &&
+      options.stressScenario.expenseAmount
     ) {
-      const amount = scenario.expenseAmount!;
-      daySimulated += amount;
-      dayEvents.push({ type: 'simulated', title: `[Stress] ${scenario.name}`, amount, isOutflow: true });
+      daySimulated += options.stressScenario.expenseAmount;
+      dayEvents.push({
+        type: 'simulated',
+        title: `[Stress] ${options.stressScenario.name}`,
+        amount: options.stressScenario.expenseAmount,
+        isOutflow: true,
+      });
     }
 
+    // Compute day's closing balance
     const openingBalance = runningBalance;
-    const closingBalance = openingBalance + dayIncome -
+    const closingBalance =
+      openingBalance +
+      dayIncome -
       (dayCommitments + dayDiscretionary + daySavings + daySimulated);
+
+    // Update running balance for next day
     runningBalance = closingBalance;
+
     forecast.push({
-      day, dateLabel: `Day ${day}`, openingBalance, incomeTotal: dayIncome,
-      committedTotal: dayCommitments, discretionaryTotal: dayDiscretionary,
-      savingsTotal: daySavings, simulatedTotal: daySimulated, closingBalance,
-      minimumProjected: minReserve, isConstraintBreached: closingBalance < minReserve,
+      day,
+      dateLabel: `Day ${day}`,
+      openingBalance,
+      incomeTotal: dayIncome,
+      committedTotal: dayCommitments,
+      discretionaryTotal: dayDiscretionary,
+      savingsTotal: daySavings,
+      simulatedTotal: daySimulated,
+      closingBalance,
+      minimumProjected: minReserve,
+      isConstraintBreached: closingBalance < minReserve,
       events: dayEvents,
     });
   }
+
   return forecast;
 }
 
@@ -372,7 +420,7 @@ export function generateRecoveryOptions(
   }
 
   // 2. Dial back daily discretionary allowance across the next 14 days
-  const daysAhead = Math.min(14, 30 - currentDay + 1);
+  const daysAhead = Math.min(14, 30 - currentDay);
   if (state.constraints.dailyDiscretionaryBudget > 100 && daysAhead > 3) {
     const dailyTrim = Math.round(state.constraints.dailyDiscretionaryBudget * 0.25);
     const totalFreed = dailyTrim * daysAhead;
@@ -392,7 +440,7 @@ export function generateRecoveryOptions(
   // 3. Pause active voluntary savings goal allocations
   const activeDailySavings = state.goals.reduce((sum, g) => sum + g.allocatedDaily, 0);
   if (activeDailySavings > 0) {
-    const savingsFreed = activeDailySavings * (30 - currentDay + 1);
+    const savingsFreed = activeDailySavings * (30 - currentDay);
     actions.push({
       id: 'pause_savings_allocation',
       title: `Temporarily Pause Voluntary Savings Goal Deposits`,
@@ -426,7 +474,7 @@ export function applyRecoveryAction(
         updated.commitments[idx].status = 'cancelled';
       } else if (action.type === 'defer_commitment') {
         updated.commitments[idx].dueDay += 7;
-        updated.commitments[idx].status = 'due';
+        updated.commitments[idx].status = 'deferred';
       }
     }
   } else if (action.id === 'reduce_discretionary_25') {

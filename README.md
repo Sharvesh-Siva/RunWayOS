@@ -58,7 +58,6 @@ npm run dev
 To validate the project:
 
 ```bash
-npm test
 npm run lint
 npm run build
 ```
@@ -83,15 +82,11 @@ src/
     storage.ts               Demo-state persistence and reset
   tests/
     financeEngine.test.ts    Finance-engine invariant checks
-    run.ts                   Standalone test runner
   types/
     finance.ts               Shared financial domain types
 docs/
   PROJECT_GUIDE.md           Product explanation, workflow, and limitations
-  ARCHITECTURE.md             Module boundaries, data flow, and invariants
 ```
-
-See [the architecture guide](docs/ARCHITECTURE.md) for module responsibilities, data flow, and important calculation invariants.
 
 ## Transparency and safety
 
