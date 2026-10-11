@@ -1,0 +1,6 @@
+{
+  "name": "RunwayOS",
+  "description": "Personal Financial Operations and Decision Intelligence platform for navigating cashflow constraints, decision simulations, and recovery planning.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
