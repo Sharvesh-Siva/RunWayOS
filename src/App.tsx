@@ -18,7 +18,6 @@ import {
   saveStateToStorage,
   resetDemoState,
 } from './engine/storage';
-import { runAllTests } from './tests/financeEngine.test';
 
 import { Navbar } from './components/layout/Navbar';
 import { DemoBanner } from './components/layout/DemoBanner';
@@ -52,18 +51,6 @@ export default function App() {
   // Decision Launcher Modal
   const [showDecisionModal, setShowDecisionModal] = useState(false);
 
-  // Automated Test Verification results
-  const [testResults, setTestResults] = useState<{ passed: number; failed: number; results: string[] }>({
-    passed: 0,
-    failed: 0,
-    results: [],
-  });
-
-  // Run automated invariant tests on startup
-  useEffect(() => {
-    const res = runAllTests();
-    setTestResults(res);
-  }, []);
 
   // Save financial state whenever modified
   useEffect(() => {
@@ -392,7 +379,7 @@ export default function App() {
             <span>·</span>
             <span>Educational Financial Operations Platform</span>
             <span>·</span>
-            <span className="text-teal-400 font-mono">Tests: {testResults.passed} Passed / {testResults.failed} Failed</span>
+            <span className="text-teal-400 font-mono">Deterministic 30-day forecast</span>
           </div>
           <div>
             <span>Fictional demonstration data · No live banking integration</span>
