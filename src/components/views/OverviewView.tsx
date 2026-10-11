@@ -248,6 +248,71 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         </div>
       </div>
 
+      {/* 5. Product explainer: make the decision workflow understandable to first-time reviewers */}
+      <section
+        aria-labelledby="runway-how-heading"
+        className="rounded-2xl border border-neutral-800 bg-neutral-900/70 p-5 sm:p-6"
+      >
+        <div className="max-w-3xl">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-400">The RunwayOS method</p>
+          <h3 id="runway-how-heading" className="mt-2 text-lg font-semibold text-white">
+            See the risk. Test the options. Choose with evidence.
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-neutral-300">
+            RunwayOS turns a month of income, spending, and commitments into a plan you can inspect before making a change.
+            It is designed for people working with limited funds—not just for recording what they have already spent.
+          </p>
+        </div>
+
+        <ol className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <li className="rounded-xl border border-neutral-800 bg-neutral-950/70 p-4">
+            <span className="text-xs font-mono text-teal-400">01 / Understand</span>
+            <h4 className="mt-2 text-sm font-semibold text-white">Build the cash timeline</h4>
+            <p className="mt-1 text-xs leading-5 text-neutral-400">
+              Combine available funds, dated bills, planned daily spending, goals, and expected income to estimate what happens each day.
+            </p>
+          </li>
+          <li className="rounded-xl border border-neutral-800 bg-neutral-950/70 p-4">
+            <span className="text-xs font-mono text-teal-400">02 / Detect</span>
+            <h4 className="mt-2 text-sm font-semibold text-white">Find pressure points early</h4>
+            <p className="mt-1 text-xs leading-5 text-neutral-400">
+              Highlight the date cash may cross the protected reserve, so a shortfall is visible before the month ends.
+            </p>
+          </li>
+          <li className="rounded-xl border border-neutral-800 bg-neutral-950/70 p-4">
+            <span className="text-xs font-mono text-teal-400">03 / Compare</span>
+            <h4 className="mt-2 text-sm font-semibold text-white">Test alternatives safely</h4>
+            <p className="mt-1 text-xs leading-5 text-neutral-400">
+              Compare buying now, choosing a lower-cost option, or delaying a purchase. A preview does not change the active plan.
+            </p>
+          </li>
+          <li className="rounded-xl border border-neutral-800 bg-neutral-950/70 p-4">
+            <span className="text-xs font-mono text-teal-400">04 / Decide</span>
+            <h4 className="mt-2 text-sm font-semibold text-white">Approve and track</h4>
+            <p className="mt-1 text-xs leading-5 text-neutral-400">
+              Review the trade-off, approve a change yourself, then inspect the updated forecast and decision history.
+            </p>
+          </li>
+        </ol>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="rounded-xl border border-neutral-800 p-4">
+            <h4 className="text-xs font-semibold text-neutral-200">How to read the forecast</h4>
+            <p className="mt-1 text-xs leading-5 text-neutral-400">
+              The line is a projection, not a bank balance guarantee. Its result depends on the listed transactions, commitment dates,
+              expected income, daily allowance, and protected reserve. Select a day to inspect the timeline.
+            </p>
+          </div>
+          <div className="rounded-xl border border-neutral-800 p-4">
+            <h4 className="text-xs font-semibold text-neutral-200">What this demo does—and does not do</h4>
+            <p className="mt-1 text-xs leading-5 text-neutral-400">
+              This workspace uses fictional INR data and local demo state. It does not connect to banks, move money, verify income,
+              or provide regulated financial advice. Forecasts are deterministic estimates based on the assumptions shown.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Available to Spend Calculation Breakdown Modal */}
       <AvailableToSpendModal
         isOpen={isAvailableModalOpen}
