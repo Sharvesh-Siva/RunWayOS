@@ -86,11 +86,8 @@ Scenarios are illustrative, not claims about a real person's finances. Reset the
 Run the following commands before submitting changes:
 
 ```bash
-npm test
 npm run lint
 npm run build
 ```
-
-The GitHub Actions workflow runs the same checks on pushes and pull requests. Dependency installation currently uses `npm install` because this repository does not yet track a lockfile; committing a reviewed `package-lock.json` and switching CI to `npm ci` is the next reproducibility improvement.
 
 When changing financial calculations, add or update invariant tests for boundary conditions, negative balances, delayed inflows, reserve breaches, and preview-versus-commit behavior. Also check keyboard access, focus visibility, responsive layouts, readable chart labels, and text alternatives for important graphical data.
