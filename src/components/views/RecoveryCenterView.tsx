@@ -4,7 +4,7 @@
  * Does not mutate budgets silently: all changes require explicit approval.
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   AppFinancialState,
   CashMetrics,
@@ -41,13 +41,12 @@ export const RecoveryCenterView: React.FC<RecoveryCenterViewProps> = ({
   forecast,
   onApplyAction,
 }) => {
-  const recoveryOptions = generateRecoveryOptions(state, forecast);
+  const recoveryOptions = useMemo(() => generateRecoveryOptions(state, forecast), [state, forecast]);
   const [selectedActionId, setSelectedActionId] = useState<string>(
     recoveryOptions[0]?.id || ''
   );
   const [appliedNotice, setAppliedNotice] = useState<string | null>(null);
 
-  const selectedAction = recoveryOptions.find((a) => a.id === selectedActionId);
 
   const handleApproveAction = (action: RecoveryAction) => {
     const updatedState = applyRecoveryAction(state, action);
@@ -170,13 +169,10 @@ export const RecoveryCenterView: React.FC<RecoveryCenterViewProps> = ({
               const willResolveDeficit = action.cashFreed >= shortfallAmount;
 
               return (
-                <div
+                <article
                   key={action.id}
-                  onClick={() => setSelectedActionId(action.id)}
-                  className={`bg-neutral-900 rounded-2xl p-5 border transition-all cursor-pointer flex flex-col justify-between ${
-                    isSelected
-                      ? 'border-teal-400 ring-1 ring-teal-400 shadow-lg'
-                      : 'border-neutral-800 hover:border-neutral-700'
+                  className={`bg-neutral-900 rounded-2xl p-5 border transition-colors flex flex-col justify-between ${
+                    isSelected ? 'border-teal-400 ring-1 ring-teal-400 shadow-lg' : 'border-neutral-800'
                   }`}
                 >
                   <div>
@@ -216,19 +212,26 @@ export const RecoveryCenterView: React.FC<RecoveryCenterViewProps> = ({
                       )}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleApproveAction(action);
-                      }}
-                      className="px-3.5 py-1.5 bg-teal-400 hover:bg-teal-300 text-neutral-950 font-bold text-xs rounded-lg transition-colors shadow-sm flex items-center gap-1"
-                    >
-                      <span>Approve Proposal</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => setSelectedActionId(action.id)}
+                        className="px-3 py-1.5 border border-neutral-700 text-neutral-200 font-semibold text-xs rounded-lg hover:border-teal-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-400"
+                      >
+                        {isSelected ? 'Selected' : 'Select'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleApproveAction(action)}
+                        className="px-3.5 py-1.5 bg-teal-400 hover:bg-teal-300 text-neutral-950 font-bold text-xs rounded-lg transition-colors shadow-sm flex items-center gap-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-300"
+                      >
+                        <span>Approve Proposal</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
