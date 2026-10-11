@@ -231,7 +231,7 @@ export const RecoveryCenterView: React.FC<RecoveryCenterViewProps> = ({
                       </button>
                     </div>
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
