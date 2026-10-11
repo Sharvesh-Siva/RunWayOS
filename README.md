@@ -58,6 +58,7 @@ npm run dev
 To validate the project:
 
 ```bash
+npm test
 npm run lint
 npm run build
 ```
